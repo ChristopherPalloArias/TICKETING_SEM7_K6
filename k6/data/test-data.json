@@ -1,0 +1,16 @@
+{
+  "placeholders": [
+    {
+      "id": 1,
+      "tag": "generic_scenario_1"
+    },
+    {
+      "id": 2,
+      "tag": "generic_scenario_2"
+    }
+  ],
+  "systemConfig": {
+    "defaultRetries": 3,
+    "mockEnabled": true
+  }
+}
