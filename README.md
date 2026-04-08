@@ -28,11 +28,13 @@
 
 ## 📌 Panel de Entrega y Resultados Formales
 
-> ⚠️ **ATENCIÓN EVALUADOR:** Todos los insumos obligatorios exigidos sobre la validación de latencia, escalabilidad y prevención de sobreventa se encuentran consolidados y listos para su auditoría:
+> ⚠️ **ATENCIÓN EVALUADOR:** Todos los insumos obligatorios exigidos sobre la validación de latencia, escalabilidad y prevención de sobreventa se encuentran consolidados y listos para su auditoría.
+> 
+> 🔗 **[👉 HAZ CLIC AQUÍ PARA VER EL INFORME OFICIAL DE LOS RESULTADOS](https://christopherpalloarias.github.io/TICKETING_SEM7_K6/)**
 
-- 📄 **Informe Consolidado Oficial (Markdown):** [`K6_RESULTS_REPORT.md`](./K6_RESULTS_REPORT.md) 
-- 🌐 **Informe Consolidado Ejecutivo (HTML):** [`K6_RESULTS_REPORT.html`](./K6_RESULTS_REPORT.html) *(Versión con estilos corporativos)*
-- 📊 **Evidencia de Ejecución Cruda:** [`Carpeta /k6/reports`](./k6/reports/) *(contiene resúmenes JSON y logs detallados que demuestran el cumplimiento del SLA y la operación segura del inventario).*
+
+- 📄 **Informe Técnico (Markdown):** [`K6_RESULTS_REPORT.md`](./K6_RESULTS_REPORT.md) *(Documentación cruda y auditable dentro del repo).*
+- 📊 **Evidencia de Ejecución Cruda:** [`Carpeta /k6/reports`](./k6/reports/) *(Contiene resúmenes JSON y logs detallados que demuestran el SLA).*
 - 🚀 **Scripts de Escenarios:** Consultar la carpeta [`k6/scenarios/`](./k6/scenarios/)
 
 ---
