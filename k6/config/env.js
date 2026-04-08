@@ -18,6 +18,10 @@
 export const BASE_URL_EVENTS    = __ENV.BASE_URL_EVENTS    || 'http://localhost:8080';
 export const BASE_URL_TICKETING = __ENV.BASE_URL_TICKETING || 'http://localhost:8080';
 
+// Direct bypass for testability/reset endpoints not exposed to the public API gateway
+export const BASE_URL_EVENTS_DIRECT    = __ENV.BASE_URL_EVENTS_DIRECT    || 'http://localhost:8081';
+export const BASE_URL_TICKETING_DIRECT = __ENV.BASE_URL_TICKETING_DIRECT || 'http://localhost:8082';
+
 // ---------------------------------------------------------------------------
 // Context headers
 // ---------------------------------------------------------------------------

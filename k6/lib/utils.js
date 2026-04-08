@@ -3,18 +3,7 @@
 
 import { SharedArray } from 'k6/data';
 
-/**
- * Load test data from JSON file using SharedArray
- * Ensures data is loaded once and shared across all VUs
- * @param {string} filePath - default path is relative to the root (e.g. ./k6/data/test-data.json depending on CWD) 
- * @returns {Array} Shared data array
- */
-export function loadSharedData(filePath) {
-  return new SharedArray('testData', function () {
-    const data = JSON.parse(open(filePath));
-    return Array.isArray(data) ? data : [data];
-  });
-}
+
 
 /**
  * Select a data item from shared array based on iteration index
@@ -64,7 +53,6 @@ export function safeJsonParse(response) {
 }
 
 export default {
-  loadSharedData,
   selectDataItem,
   buildReservationPayload,
   safeJsonParse,

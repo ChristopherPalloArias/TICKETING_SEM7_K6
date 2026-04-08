@@ -38,17 +38,19 @@ This directory contains test data configurations for the `mvp-core-performance` 
    - **Peak concurrent reservations:** ~5400 attempts during 3 min SLA window
    - Provide enough distinct valid payload combinations or use identical payloads if backend lock concurrency permits overlapping writes (depends on backend idempotency or block/release seat constraints).
 
-### Inventory Reset Procedure
+### Inventory Reset Procedure (Automated)
 
 Reservation endpoints consume/lock `seatIds`. If a test is run twice, the backend may reject the reservation via `409 Conflict` (Seat already locked) unless inventory is replenished or reset.
 
-#### Direct Database Reset (DBA Access)
-The most efficient method to reset state for load testing is manipulating the database:
-```sql
-UPDATE tickets SET status = 'AVAILABLE', reservation_id = null;
-UPDATE reservations SET status = 'EXPIRED';
+**⚠️ Solved via Testability Endpoints:**
+You no longer need to run manual DBA SQL queries or shell scripts. 
+The k6 configuration natively hits backend testability endpoints to auto-reset databases and auto-fetch accurate available payloads immediately before load testing.
+
+To run the full suite cleanly, simply execute:
+```bash
+k6 run k6/scenarios/smoke.js
+k6 run k6/scenarios/load-reservations.js
 ```
-*(Exact table structures depend on the schema definition in `ms-ticketing` / `ms-events`)*
 
 ---
 
