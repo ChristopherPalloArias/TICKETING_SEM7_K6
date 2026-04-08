@@ -1,45 +1,75 @@
+// k6/lib/http-client.js
+// HTTP wrappers aligned to PERF-001 spec and real backend contracts
+
 import http from 'k6/http';
-import { ENV } from '../config/env.js';
+import { config } from '../config/env.js';
 
 /**
- * Generic HTTP client wrapper to encapsulate common headers and auth.
+ * Build standard headers
+ * The Ticketing backend uses X-User-Id for ownership verification
+ * instead of Authorization Bearer tokens.
  */
-
-const buildHeaders = (customHeaders = {}) => {
-  const defaultHeaders = {
+function buildHeaders(additionalHeaders = {}) {
+  return {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    'X-User-Id': config.userId,
+    ...additionalHeaders,
   };
+}
+
+/**
+ * GET /api/v1/events
+ * Query available published events. Read-only operation.
+ * @param {number} page - page number
+ * @param {number} size - page size
+ * @returns {Object} k6 HTTP response object
+ */
+export function getEvents(page = 1, size = 10) {
+  // Use explicit backend url for events
+  const url = `${config.baseUrlEvents}/api/v1/events?page=${page}&size=${size}`;
   
-  if (ENV.AUTH_TOKEN) {
-    defaultHeaders['Authorization'] = `Bearer ${ENV.AUTH_TOKEN}`;
-  }
+  return http.get(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      // No X-User-Id required for public catalog reads
+    },
+    tags: { endpoint: 'GET /api/v1/events' },
+  });
+}
 
-  return Object.assign({}, defaultHeaders, customHeaders);
-};
+/**
+ * POST /api/v1/reservations
+ * Create a new reservation locking inventory.
+ * @param {Object} payload - conforms to CreateReservationRequest
+ * @returns {Object} k6 HTTP response object
+ */
+export function createReservation(payload) {
+  // Use explicit backend url for ticketing
+  const url = `${config.baseUrlTicketing}/api/v1/reservations`;
+  
+  return http.post(url, JSON.stringify(payload), {
+    headers: buildHeaders(),
+    tags: { endpoint: 'POST /api/v1/reservations' },
+  });
+}
 
-export const httpClient = {
-  get: (path, headers = {}, params = {}) => {
-    return http.get(`${ENV.BASE_URL}${path}`, {
-      headers: buildHeaders(headers),
-      ...params,
-    });
-  },
-  post: (path, body, headers = {}, params = {}) => {
-    return http.post(`${ENV.BASE_URL}${path}`, JSON.stringify(body), {
-      headers: buildHeaders(headers),
-      ...params,
-    });
-  },
-  put: (path, body, headers = {}, params = {}) => {
-    return http.put(`${ENV.BASE_URL}${path}`, JSON.stringify(body), {
-      headers: buildHeaders(headers),
-      ...params,
-    });
-  },
-  del: (path, body = null, headers = {}, params = {}) => {
-    const args = { headers: buildHeaders(headers), ...params };
-    if (body) args.body = JSON.stringify(body);
-    return http.del(`${ENV.BASE_URL}${path}`, null, args);
-  }
+/**
+ * Health check — validate endpoint connectivity
+ * We hit GET /api/v1/events as a proxy for holistic backend health 
+ * because it requires database connectivity on the Events service.
+ * @returns {Object} k6 HTTP response object
+ */
+export function healthCheck() {
+  const url = `${config.baseUrlEvents}/api/v1/events?page=1&size=1`;
+  
+  return http.get(url, {
+    headers: { 'Content-Type': 'application/json' },
+    tags: { endpoint: 'healthcheck' },
+  });
+}
+
+export default {
+  getEvents,
+  createReservation,
+  healthCheck,
 };
