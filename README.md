@@ -32,7 +32,8 @@
 > 
 > 🔗 **[👉 HAZ CLIC AQUÍ PARA VER EL INFORME OFICIAL DE LOS RESULTADOS](https://christopherpalloarias.github.io/TICKETING_SEM7_K6/)**
 
-
+- 📄 **Test Plan Oficial:** [`TEST_PLAN.md`](https://github.com/ChristopherPalloArias/PRD_BACKLOG/blob/main/TEST_PLAN.md) *(Estrategia general documentada y riesgos).*
+- 📋 **Matriz de Test Cases:** [`TEST_CASES.md`](https://github.com/ChristopherPalloArias/PRD_BACKLOG/blob/main/TEST_CASES.md) *(Mapeo explícito de métricas, CA y casos evaluados).*
 - 📄 **Informe Técnico (Markdown):** [`K6_RESULTS_REPORT.md`](./K6_RESULTS_REPORT.md) *(Documentación cruda y auditable dentro del repo).*
 - 📊 **Evidencia de Ejecución Cruda:** [`Carpeta /k6/reports`](./k6/reports/) *(Contiene resúmenes JSON y logs detallados que demuestran el SLA).*
 - 🚀 **Scripts de Escenarios:** Consultar la carpeta [`k6/scenarios/`](./k6/scenarios/)
