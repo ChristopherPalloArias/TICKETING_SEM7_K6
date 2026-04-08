@@ -5,6 +5,17 @@
 
 ---
 
+## 📌 Documentación de Resultados (MVP Final)
+
+Los informes ejecutables formales de esta validación han sido movidos a la raíz de este repositorio para mayor visibilidad:
+
+- 📄 **[K6_RESULTS_REPORT.md](./K6_RESULTS_REPORT.md)**: Informe estructurado, técnico y auditable principal.
+- 🌐 **[K6_RESULTS_REPORT.html](./K6_RESULTS_REPORT.html)**: Versión con estilos y soporte para gráficos, orientada a presentación. *(Opcional: Si está configurado GitHub Pages para este repositorio, este informe HTML estará disponile públicamente a través de su URL).*
+
+> **Nota:** Las evidencias en crudo (logs agregados, reportes autogenerados en formato JSON y logs de agotamiento/setup) permanecen organizadas en la carpeta `k6/reports/` para propósitos de auditoría rigurosa.
+
+---
+
 ## Overview
 
 This repository contains the k6 load testing suite for the **Ticketing MVP** backend reto (Semestre 7).  
@@ -40,22 +51,20 @@ curl http://localhost:8080/api/v1/events?page=1&size=1
 ## Project Structure
 
 ```
-k6/
-├── config/
-│   ├── env.js          # Base URL and context header configuration (env-var driven)
-│   ├── options.js      # Executor/stage definitions for all scenarios (spec-aligned)
-│   └── thresholds.js   # SLA thresholds (p95, error rate) per scenario tag
-├── data/
-│   └── README.md       # Data strategy notes
-├── lib/
-│   ├── checks.js       # Response validation helpers (status, schema)
-│   ├── http-client.js  # HTTP wrappers: getEvents(), createReservation(), healthCheck()
-│   └── utils.js        # selectDataItem(), buildReservationPayload(), safeJsonParse()
-├── reports/            # Execution output artifacts (JSON summary, logs)
-└── scenarios/
-    ├── smoke.js             # Combined smoke: events + reservations (1 VU, 1 iteration each)
-    ├── load-events.js       # Load: ramping-arrival-rate up to 80 req/s (~8m 30s)
-    └── load-reservations.js # Load: ramping-arrival-rate up to 30 req/s (~7m 30s)
+/ (raíz)
+ ├── K6_RESULTS_REPORT.md        # Informe formal final redactado (Markdown)
+ ├── K6_RESULTS_REPORT.html      # Informe formal final (HTML)
+ ├── README.md                   # Ejecución técnica del proyecto
+ │
+ └── k6/
+     ├── config/                 # Configuración de stages, oopciones y thresholds (env-var driven)
+     ├── data/
+     ├── lib/
+     ├── reports/                # Evidencias en crudo
+     │   ├── *.log               # Logs de consola de las ejecuciones (warmups. setup de inventarios)
+     │   ├── *-summary.json      # Reportes JSON autogenerados de k6
+     │   └── K6_RESULTS.md       # Análisis exploratorio log-by-log inicial
+     └── scenarios/              # Tests k6 y scripts de testeo
 ```
 
 ---
@@ -145,10 +154,10 @@ k6 run \
 
 ## Reports
 
-Execution artifacts are saved under `k6/reports/`.  
-Use the `--out json=k6/reports/<name>.json` flag to generate a machine-readable summary.
+Las evidencias en crudo producto de las ejecuciones de los comandos se exportan automáticamente en `k6/reports/`.
+El formato JSON (`--out json`) provee la trazabilidad más profunda de todas las métricas de la herramienta para ser inspeccionados de forma asíncrona.
 
-See [k6/reports/K6_RESULTS.md](k6/reports/K6_RESULTS.md) for test execution evidence and observations.
+Ver **[K6_RESULTS_REPORT.md](./K6_RESULTS_REPORT.md)** en esta misma raíz para revisar las conclusiones oficiales sobre dichas evidencias.
 
 ---
 
@@ -211,4 +220,5 @@ Until then, `reservation_success_duration` captures the measurable portion of va
 | Performance Plan | `docs/output/qa/performance-plan-mvp-core-performance.md` |
 | Risk Matrix | `docs/output/qa/risk-matrix-mvp-core-performance.md` |
 | Automation Proposal | `docs/output/qa/automation-proposal-mvp-core-performance.md` |
-| Test Results | `k6/reports/K6_RESULTS.md` |
+| Informe Consolidado Oficial | `./K6_RESULTS_REPORT.md` |
+| Ejecución y artefactos crudos | `k6/reports/K6_RESULTS.md` |
