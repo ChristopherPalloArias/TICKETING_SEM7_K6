@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe de Resultados de Rendimiento K6 - Ticketing MVP</title>
+    <style>
+        :root {
+            --primary-color: #2D3748;
+            --secondary-color: #4A5568;
+            --accent-color: #3182CE;
+            --success-color: #38A169;
+            --bg-color: #F7FAFC;
+            --card-bg: #FFFFFF;
+            --border-color: #E2E8F0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--primary-color);
+            background-color: var(--bg-color);
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        h2 {
+            color: var(--accent-color);
+            font-size: 1.5rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+        }
+
+        .section {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--card-bg);
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--bg-color);
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background-color: #C6F6D5;
+            color: #22543D;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card {
+            background-color: var(--bg-color);
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+        
+        .note {
+            font-size: 0.9em;
+            color: var(--secondary-color);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Informe de Resultados de Rendimiento (K6)</h1>
+        <p style="font-size: 1.2rem; color: var(--secondary-color);">Sistema de Venta de Entradas — Ticketing MVP</p>
+    </div>
+
+    <div class="section">
+        <h2>1. Identificación del informe</h2>
+        <table>
+            <tbody>
+                <tr>
+                    <td><strong>Proyecto</strong></td>
+                    <td>Sistema de Venta de Entradas para Obras de Teatro</td>
+                </tr>
+                <tr>
+                    <td><strong>Versión</strong></td>
+                    <td>MVP v1.0</td>
+                </tr>
+                <tr>
+                    <td><strong>Fecha</strong></td>
+                    <td>07/04/2026</td>
+                </tr>
+                <tr>
+                    <td><strong>Autor / QA</strong></td>
+                    <td>Christopher Ismael Pallo Arias</td>
+                </tr>
+                <tr>
+                    <td><strong>Herramienta de Prueba</strong></td>
+                    <td>k6</td>
+                </tr>
+                <tr>
+                    <td><strong>Entorno de Ejecución</strong></td>
+                    <td>Local (Docker Compose). El tráfico de carga de los escenarios (<code>load_events</code>, <code>load_reservations</code>) se inyectó a través del API Gateway en el puerto <code>8080</code>. Las operaciones de <code>setup()</code> — llamadas a los endpoints de <code>testability/performance/reset</code> e inventario — se realizaron directamente sobre los puertos de servicio: <code>ms-events</code> en <code>8081</code> y <code>ms-ticketing</code> en <code>8082</code>.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>2. Resumen ejecutivo</h2>
+        <p>El objetivo de esta validación de rendimiento es verificar que los flujos transaccionales críticos del Ticketing MVP operan dentro de los umbrales de latencia y tasa de error definidos en el plan de pruebas, bajo condiciones de carga concurrente. La ejecución abarcó dos flujos: la consulta del catálogo de eventos (<code>GET /api/v1/events</code>) y la creación de reservas (<code>POST /api/v1/reservations</code>).</p>
+        <p>El ciclo de ejecución en k6 concluyó con todos los <em>thresholds</em> evaluados en estado <code>pass</code>. Las métricas de latencia evaluadas por threshold quedaron dentro de los límites establecidos para ambos flujos. En el escenario de reservas, la estrategia de medición contempló explícitamente las respuestas <code>HTTP 409 Conflict</code> como eventos de contención de inventario, registrándolas por separado mediante <code>reservation_inventory_conflict</code> para no contaminar el threshold de error técnico.</p>
+        <div class="metric-card">
+            <p><strong>Conclusión ejecutiva:</strong> Los <em>thresholds</em> definidos para p95 de latencia y tasa de error técnico se cumplieron en todos los escenarios. El sistema respondió de forma estable durante la ventana de medición del SLA.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>3. Alcance de K6</h2>
+        <p>Conforme a lo establecido en el plan formal (<code>TEST_PLAN.md</code>), este ciclo de rendimiento abarcó exclusivamente:</p>
+        <ul>
+            <li><strong>HU-03 (Consulta de disponibilidad):</strong> Evaluación del <em>read-path</em> sobre el endpoint <code>GET /api/v1/events</code> bajo carga concurrente creciente.</li>
+            <li><strong>HU-04 (Reserva temporal):</strong> Evaluación del <em>write-path</em> sobre el endpoint <code>POST /api/v1/reservations</code> con contención de inventario bajo carga.</li>
+        </ul>
+        <p><strong>Delimitación de alcance:</strong> K6 evalúa parámetros no funcionales: latencia, throughput y tasa de error de red. No reemplaza la validación de reglas de negocio, estados transaccionales ni lógica de dominio, que fueron cubiertos en el ciclo funcional mediante Karate.</p>
+    </div>
+
+    <div class="section">
+        <h2>4. Criterios y umbrales definidos</h2>
+        <p>Los umbrales de aceptación formales definidos en <code>TEST_PLAN.md</code> y configurados en <code>k6/config/thresholds.js</code> son:</p>
+        
+        <h3>1. <code>GET /api/v1/events</code> — Escenario <code>load_events</code></h3>
+        <ul>
+            <li><code>http_req_duration{scenario:load_events}</code> p95 &lt; 400 ms</li>
+            <li><code>http_req_failed{scenario:load_events}</code> rate &lt; 1%</li>
+            <li><strong>Target de llegada configurado:</strong> 80 iteraciones/s (executor <code>ramping-arrival-rate</code>, etapa final de 3 minutos en el SLA window)</li>
+        </ul>
+        
+        <h3>2. <code>POST /api/v1/reservations</code> — Escenario <code>load_reservations</code></h3>
+        <ul>
+            <li><code>reservation_success_duration</code> p95 &lt; 600 ms <em>(métrica custom sobre respuestas HTTP 201 únicamente)</em></li>
+            <li><code>http_req_failed{scenario:load_reservations}</code> rate &lt; 1% <em>(errores técnicos: 5xx y fallos de red)</em></li>
+            <li><strong>Target de llegada configurado:</strong> 30 iteraciones/s (executor <code>ramping-arrival-rate</code>, etapa final de 3 minutos en el SLA window)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Escenarios ejecutados en K6</h2>
+        
+        <h3>5.1 Smoke Test</h3>
+        <ul>
+            <li><strong>Executor:</strong> <code>shared-iterations</code> (1 VU, 1 iteración por flujo)</li>
+            <li><strong>Objetivo:</strong> Verificar la disponibilidad básica del entorno antes de inyectar carga sostenida. Confirma que los servicios responden con códigos esperados y que el inventario fue correctamente inicializado por el <code>setup()</code>.</li>
+            <li><strong>Qué valida:</strong> <code>HTTP 200</code> en <code>GET /api/v1/events</code>, <code>HTTP 201</code> en <code>POST /api/v1/reservations</code>, estructura JSON válida en las respuestas, y tiempo de respuesta dentro de límites de pre-carga.</li>
+            <li><strong>Métricas clave observadas:</strong> 
+                <ul>
+                    <li><code>http_req_duration{scenario:smoke_events}</code> p95: <span class="highlight">21.33 ms</span></li>
+                    <li><code>http_req_duration{scenario:smoke_reservations}</code> p95: <span class="highlight">80.85 ms</span></li>
+                    <li><em>Checks</em> aprobados: <strong>7 / 7</strong></li>
+                </ul>
+            </li>
+            <li><strong>Interpretación:</strong> El entorno respondió correctamente en condiciones mínimas. Los tiempos de respuesta se encuentran muy por debajo de los límites del plan. El inventario fue confirmado por el <code>setup()</code> antes de proceder a carga.</li>
+            <li><strong>Estado:</strong> <span class="status-badge">✓ Aprobado</span></li>
+        </ul>
+
+        <h3>5.2 Load Test — Event Availability</h3>
+        <ul>
+            <li><strong>Executor:</strong> <code>ramping-arrival-rate</code></li>
+            <li><strong>Perfil de carga (stages):</strong> Warm-up (40 iter/s x 1m), Estabilización (40 iter/s x 2m), Rampa a pico (hasta 80 iter/s x 1m), <strong>SLA window</strong> (80 iter/s x 3m), Cool-down (0 en 30s)</li>
+            <li><strong>Objetivo:</strong> Evaluar el comportamiento del endpoint <code>GET /api/v1/events</code> bajo un régimen de carga creciente hasta el target de 80 iteraciones/s, midiendo latencia y estabilidad.</li>
+            <li><strong>Qué valida:</strong> Capacidad de respuesta serializada del catálogo bajo concurrencia. Ausencia de errores técnicos.</li>
+            <li><strong>Métricas clave observadas:</strong> 
+                <ul>
+                    <li><code>http_req_duration{scenario:load_events}</code> p95: <span class="highlight">14.30 ms</span> · p90: 12.73 ms · avg: 8.42 ms · max: 59.18 ms (umbral: &lt; 400 ms)</li>
+                    <li><code>http_req_failed{scenario:load_events}</code> rate: <span class="highlight">0.00%</span> — 0 de 25,200 solicitudes (umbral: &lt; 1%)</li>
+                    <li><em>Checks</em> completados: <strong>75,601 / 75,601</strong> (100%)</li>
+                    <li>Iteraciones completadas: <strong>25,200</strong></li>
+                    <li>Tasa de iteraciones observada (global, duración total): <strong>55.98 iter/s</strong></li>
+                </ul>
+            </li>
+            <li><strong>Interpretación del throughput:</strong> El target configurado es de 80 iteraciones/s en la etapa de SLA window (4m01s–7m01s, observable en el log a partir del minuto 4:01 con <code>80.00 iters/s</code> sostenido). La tasa global de 55.98 iter/s es el promedio sobre toda la duración del test (7m30s), incluyendo las etapas de warm-up (40 iter/s) y rampa (que parte de 0). Comparar este promedio global contra el target de la SLA window produce un resultado que subestima el rendimiento real en la ventana de medición. La métrica formalmente definida como threshold es <code>http_req_duration</code> p95, que se mantuvo en 14.30 ms durante toda la ejecución.</li>
+            <li><strong>Estado:</strong> <span class="status-badge">✓ Aprobado</span></li>
+        </ul>
+
+        <h3>5.3 Load Test — Reservation Creation</h3>
+        <ul>
+            <li><strong>Executor:</strong> <code>ramping-arrival-rate</code></li>
+            <li><strong>Perfil de carga (stages):</strong> Warm-up (15 iter/s x 1m), Estabilización (15 iter/s x 2m), Rampa a pico (hasta 30 iter/s x 1m), <strong>SLA window</strong> (30 iter/s x 3m), Cool-down (0 en 30s)</li>
+            <li><strong>Objetivo:</strong> Evaluar el comportamiento del endpoint <code>POST /api/v1/reservations</code> bajo el target de 30 iteraciones/s, midiendo latencia de escritura exitosa y estabilidad del sistema bajo contención de inventario.</li>
+            <li><strong>Qué valida:</strong> Tiempo de procesamiento de reservas confirmadas (HTTP 201), contención correcta de inventario ante solicitudes concurrentes, y ausencia de errores técnicos.</li>
+            <li><strong>Setup:</strong> El <code>setup()</code> invocó los endpoints de <code>testability/performance/reset</code> en <code>ms-ticketing</code> (puerto <code>8082</code>) y <code>ms-events</code> (puerto <code>8081</code>). El pool de inventario disponible al inicio de la ejecución fue de <strong>10,120 cupos únicos</strong>.</li>
+            <li><strong>Métricas clave observadas:</strong> 
+                <ul>
+                    <li><code>reservation_success_duration</code> p95: <span class="highlight">25.87 ms</span> · p99: <strong>27.82 ms</strong> · avg: 21.52 ms · max: 104.50 ms (umbral p95: &lt; 600 ms)</li>
+                    <li><code>http_req_duration</code> (global) p95: 25.87 ms · max: 216.43 ms</li>
+                    <li><code>http_req_failed{scenario:load_reservations}</code> rate: <span class="highlight">0.00%</span> — 0 de 9,449 solicitudes (umbral: &lt; 1%)</li>
+                    <li><em>Checks</em> completados: <strong>28,348 / 28,348</strong> (100%)</li>
+                    <li>Iteraciones completadas: <strong>9,449</strong></li>
+                    <li>Tasa de iteraciones observada (global, duración total): <strong>21.04 iter/s</strong></li>
+                </ul>
+            </li>
+            <li><strong>Interpretación del throughput:</strong> La tasa global de 21.04 iter/s es el promedio sobre toda la duración del test (≈7m29s), incluyendo las etapas de warm-up (15 iter/s) y rampa. El executor <code>ramping-arrival-rate</code> alcanzó el target configurado de 30 iteraciones/s durante la etapa de SLA window, tal como se observa en el log (<code>30.00 iters/s</code> sostenido a partir del minuto 4:01). Este promedio global no equivale al throughput en la ventana de medición. El target de throughput no es un <em>threshold</em> formal evaluado por k6 en esta suite; los <em>thresholds</em> definidos — <code>reservation_success_duration</code> p95 y <code>http_req_failed</code> rate — se cumplieron ambos.</li>
+            <li><strong>Estrategia de medición sobre respuestas 409:</strong> La estrategia de medición contempló explícitamente las respuestas <code>HTTP 409 Conflict</code> como eventos de contención de inventario, registrándolas por separado mediante <code>reservation_inventory_conflict</code> para no contaminar el threshold de error técnico. El pool de inventario disponible al inicio fue de <strong>10,120 cupos</strong> (confirmado en el log de <code>setup()</code>). Los thresholds se evaluaron exclusivamente sobre respuestas <code>HTTP 201</code> a través de <code>reservation_success_duration</code>.</li>
+            <li><strong>Estado:</strong> <span class="status-badge">✓ Aprobado</span></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>6. Resultados consolidados</h2>
+        
+        <h3>Resultados de thresholds y checks</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Threshold</th>
+                    <th>Escenario</th>
+                    <th>Valor observado</th>
+                    <th>Límite</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>http_req_duration{scenario:load_events}</code> p95</td>
+                    <td><code>load_events</code></td>
+                    <td>14.30 ms</td>
+                    <td>&lt; 400 ms</td>
+                    <td><span class="status-badge">✓ Pass</span></td>
+                </tr>
+                <tr>
+                    <td><code>http_req_failed{scenario:load_events}</code> rate</td>
+                    <td><code>load_events</code></td>
+                    <td>0.00%</td>
+                    <td>&lt; 1%</td>
+                    <td><span class="status-badge">✓ Pass</span></td>
+                </tr>
+                <tr>
+                    <td><code>reservation_success_duration</code> p95</td>
+                    <td><code>load_reservations</code></td>
+                    <td>25.87 ms</td>
+                    <td>&lt; 600 ms</td>
+                    <td><span class="status-badge">✓ Pass</span></td>
+                </tr>
+                <tr>
+                    <td><code>reservation_success_duration</code> p99</td>
+                    <td><code>load_reservations</code></td>
+                    <td>27.82 ms</td>
+                    <td>&lt; 1000 ms</td>
+                    <td><span class="status-badge">✓ Pass</span></td>
+                </tr>
+                <tr>
+                    <td><code>http_req_failed{scenario:load_reservations}</code> rate</td>
+                    <td><code>load_reservations</code></td>
+                    <td>0.00%</td>
+                    <td>&lt; 1%</td>
+                    <td><span class="status-badge">✓ Pass</span></td>
+                </tr>
+                <tr>
+                    <td><em>Checks</em> smoke (7/7)</td>
+                    <td>Smoke Test</td>
+                    <td>7 / 7</td>
+                    <td>100%</td>
+                    <td><span class="status-badge">✓ Pass</span></td>
+                </tr>
+                <tr>
+                    <td><em>Checks</em> load events (75,601/75,601)</td>
+                    <td><code>load_events</code></td>
+                    <td>100%</td>
+                    <td>100%</td>
+                    <td><span class="status-badge">✓ Pass</span></td>
+                </tr>
+                <tr>
+                    <td><em>Checks</em> load reservations (28,348/28,348)</td>
+                    <td><code>load_reservations</code></td>
+                    <td>100%</td>
+                    <td>100%</td>
+                    <td><span class="status-badge">✓ Pass</span></td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="note"><strong>Nota sobre el threshold de <code>reservation_success_duration</code>:</strong> Esta métrica custom fue registrada únicamente sobre respuestas <code>HTTP 201</code>. Las respuestas <code>HTTP 409</code> fueron excluidas de este cómputo mediante <code>setResponseCallback</code>, reflejando exclusivamente el tiempo de procesamiento del <em>write-path</em> exitoso.</p>
+
+        <h3>Throughput configurado vs. promedio observado</h3>
+        <p>El throughput no es un threshold formal evaluado por k6 en esta suite. Se documenta aquí como referencia de contexto:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Escenario</th>
+                    <th>Target configurado (SLA window)</th>
+                    <th>Promedio global observado</th>
+                    <th>Nota</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>load_events</code></td>
+                    <td>80 iter/s (SLA window)</td>
+                    <td>55.98 iter/s (promedio global, 7m30s)</td>
+                    <td>Promedio sobre duración total, incluye warm-up a 40 iter/s. Target de 80 alcanzado y sostenido desde min 4:01</td>
+                </tr>
+                <tr>
+                    <td><code>load_reservations</code></td>
+                    <td>30 iter/s (SLA window)</td>
+                    <td>21.04 iter/s (promedio global, 7m29s)</td>
+                    <td>Promedio sobre duración total, incluye warm-up a 15 iter/s. Target de 30 alcanzado y sostenido desde min 4:01</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Métricas built-in y métricas custom relevantes</h3>
+        <p><strong>Métricas built-in de k6:</strong></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Métrica</th>
+                    <th>Descripción</th>
+                    <th>Valor relevante observado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>http_req_duration</code></td>
+                    <td>Tiempo total de la solicitud HTTP (envío, espera, recepción)</td>
+                    <td>Events p95: 14.30 ms · Reservations (global): 25.87 ms</td>
+                </tr>
+                <tr>
+                    <td><code>http_req_failed</code></td>
+                    <td>Tasa de solicitudes que resultaron en error técnico (5xx, timeouts de red)</td>
+                    <td>0.00% en ambos escenarios</td>
+                </tr>
+                <tr>
+                    <td><code>iterations</code></td>
+                    <td>Total de iteraciones del escenario completadas</td>
+                    <td>Events: 25,200 · Reservations: 9,449</td>
+                </tr>
+                <tr>
+                    <td><code>dropped_iterations</code></td>
+                    <td>Iteraciones programadas por el executor que no llegaron a iniciarse por no haber un VU disponible en el momento en que el scheduler intentó lanzarlas</td>
+                    <td>Presentes en <code>load_reservations</code> durante la progresión de carga</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>Métricas custom (<code>load_reservations</code>):</strong></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Métrica</th>
+                    <th>Descripción</th>
+                    <th>Valor observado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>reservation_success_duration</code></td>
+                    <td>Latencia exclusiva de respuestas <code>HTTP 201</code>. Métrica Trend registrada manualmente en el script; es la base del threshold de p95</td>
+                    <td>p95: 25.87 ms · p99: 27.82 ms · avg: 21.52 ms · max: 104.50 ms</td>
+                </tr>
+                <tr>
+                    <td><code>reservation_inventory_conflict</code></td>
+                    <td>Contador de respuestas <code>HTTP 409</code> generadas por agotamiento de inventario. Registradas como Counter separado para no contaminar <code>http_req_failed</code></td>
+                    <td>Presente; valor exacto disponible en <code>load-reservations-summary.json</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>7. Hallazgos relevantes</h2>
+        <ol>
+            <li><strong>Latencias dentro de los umbrales en ambos flujos:</strong> Los valores de p95 observados (14.30 ms para eventos, 25.87 ms para reservas exitosas) se encuentran ampliamente por debajo de los límites establecidos de 400 ms y 600 ms respectivamente.</li>
+            <li><strong>Tasa de error técnico nula:</strong> <code>http_req_failed</code> reportó 0.00% en ambos escenarios. La estrategia de medición contempló explícitamente las respuestas <code>HTTP 409 Conflict</code> como eventos de contención de inventario, registrándolas por separado mediante <code>reservation_inventory_conflict</code> para no contaminar el threshold de error técnico.</li>
+            <li><strong><code>dropped_iterations</code> en el escenario de reservas:</strong> El executor <code>ramping-arrival-rate</code> registró iteraciones no iniciadas (<code>dropped_iterations</code>) durante la progresión de carga. Esto ocurre cuando el scheduler intenta lanzar una nueva iteración pero no hay un VU disponible en ese instante — el VU pool está temporalmente ocupado completando iteraciones en curso. Es un comportamiento inherente al executor bajo condiciones de escalado y no indica errores de aplicación ni viola ningún threshold definido en la suite.</li>
+            <li><strong>Pool de inventario:</strong> El pool de 10,120 cupos (confirmado en el log de <code>setup()</code>) permitió cubrir la ventana de carga. La contención fue registrada de forma separada mediante <code>reservation_inventory_conflict</code>, sin afectar las métricas de SLA.</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>8. Interpretación final</h2>
+        <p>Los resultados son consistentes con el comportamiento esperado del sistema bajo las condiciones definidas en el plan de pruebas. Los thresholds formales —latencia p95 y tasa de error técnico— se cumplieron en todos los escenarios evaluados.</p>
+        <p>El promedio global de throughput observado en ambos escenarios es inferior al target configurado en la SLA window, lo cual es inherente al uso del executor <code>ramping-arrival-rate</code> con etapas de warm-up: el promedio se calcula sobre la duración total del test, que incluye etapas en las que el rate configurado era inferior al pico. Este comportamiento no constituye un incumplimiento de los criterios de aceptación definidos.</p>
+        <p>La métrica <code>reservation_success_duration</code> proporciona una medición aislada del tiempo de procesamiento de escrituras exitosas, separada de las respuestas de contención de inventario, y es la métrica relevante para evaluar la latencia del <em>write-path</em> comprometida en el SLA.</p>
+    </div>
+
+    <div class="section">
+        <h2>9. Conclusión final</h2>
+        <div class="metric-card">
+            <p>El ciclo de pruebas de rendimiento con k6 sobre el Ticketing MVP concluyó con todos los <em>thresholds</em> definidos en estado <code>pass</code>. El sistema respondió de forma estable durante las ventanas de medición del SLA en los dos flujos evaluados: consulta de catálogo y creación de reservas.</p>
+            <p>La validación de rendimiento correspondiente a este ciclo queda formalmente documentada y puede considerarse cerrada.</p>
+            <p><strong>Estado del entregable de rendimiento: APROBADO</strong></p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>10. Evidencias disponibles</h2>
+        <p>Los siguientes artefactos sustentan las métricas y conclusiones de este informe:</p>
+        <ul>
+            <li><code>k6/config/options.js</code> — Definición de ejecutores, stages y configuración de escenarios</li>
+            <li><code>k6/config/thresholds.js</code> — Definición formal de los thresholds evaluados</li>
+            <li><code>k6/reports/smoke-summary.json</code> — Resumen JSON de la ejecución del Smoke Test</li>
+            <li><code>k6/reports/load-events-summary.json</code> — Resumen JSON del Load Test — Event Availability</li>
+            <li><code>k6/reports/load-reservations-summary.json</code> — Resumen JSON del Load Test — Reservation Creation</li>
+            <li><code>k6/reports/load-reservations.log</code> — Log completo de la ejecución del escenario de reservas, incluyendo salida de <code>setup()</code> e inventario disponible</li>
+        </ul>
+    </div>
+
+</body>
+</html>

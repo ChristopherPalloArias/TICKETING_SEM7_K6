@@ -20,7 +20,7 @@
 
 El objetivo de esta validación de rendimiento es verificar que los flujos transaccionales críticos del Ticketing MVP operan dentro de los umbrales de latencia y tasa de error definidos en el plan de pruebas, bajo condiciones de carga concurrente. La ejecución abarcó dos flujos: la consulta del catálogo de eventos (`GET /api/v1/events`) y la creación de reservas (`POST /api/v1/reservations`).
 
-El ciclo de ejecución en k6 concluyó con todos los *thresholds* evaluados en estado `pass`. El backend respondió dentro de los límites de latencia establecidos para ambos flujos. En el escenario de reservas, el pool de inventario disponible se agotó durante la ejecución sostenida, generando respuestas `HTTP 409 Conflict` correctas a nivel de lógica de negocio; estas fueron excluidas del cómputo de errores mediante métricas custom y el uso de `setResponseCallback`, de modo que no afectaron el umbral de error rate.
+El ciclo de ejecución en k6 concluyó con todos los *thresholds* evaluados en estado `pass`. Las métricas de latencia evaluadas por threshold quedaron dentro de los límites establecidos para ambos flujos. En el escenario de reservas, la estrategia de medición contempló explícitamente las respuestas `HTTP 409 Conflict` como eventos de contención de inventario, registrándolas por separado mediante `reservation_inventory_conflict` para no contaminar el threshold de error técnico.
 
 **Conclusión ejecutiva:** Los *thresholds* definidos para p95 de latencia y tasa de error técnico se cumplieron en todos los escenarios. El sistema respondió de forma estable durante la ventana de medición del SLA.
 
@@ -81,11 +81,12 @@ Los umbrales de aceptación formales definidos en `TEST_PLAN.md` y configurados 
 - **Objetivo:** Evaluar el comportamiento del endpoint `GET /api/v1/events` bajo un régimen de carga creciente hasta el target de 80 iteraciones/s, midiendo latencia y estabilidad.
 - **Qué valida:** Capacidad de respuesta serializada del catálogo bajo concurrencia. Ausencia de errores técnicos.
 - **Métricas clave observadas:**
-  - `http_req_duration{scenario:load_events}` p95: **14.30 ms** (umbral: < 400 ms)
-  - `http_req_failed{scenario:load_events}` rate: **0.00%** (umbral: < 1%)
+  - `http_req_duration{scenario:load_events}` p95: **14.30 ms** · p90: 12.73 ms · avg: 8.42 ms · max: 59.18 ms (umbral: < 400 ms)
+  - `http_req_failed{scenario:load_events}` rate: **0.00%** — 0 de 25,200 solicitudes (umbral: < 1%)
+  - *Checks* completados: **75,601 / 75,601** (100%)
   - Iteraciones completadas: **25,200**
-  - Promedio observado de iteraciones/s (global): **~56 iter/s**
-- **Interpretación del throughput:** El target configurado es de 80 iteraciones/s en la etapa de SLA window. El promedio global observado de ~56 iter/s refleja el promedio sobre la duración total del test, incluyendo las etapas de warm-up y rampa donde el rate configurado era inferior a 80. Este valor no debe compararse directamente con el target de la SLA window como si fueran equivalentes. La latencia p95 de 14.30 ms, que es el indicador definido como umbral formal, se mantuvo dentro del límite en todo momento.
+  - Tasa de iteraciones observada (global, duración total): **55.98 iter/s**
+- **Interpretación del throughput:** El target configurado es de 80 iteraciones/s en la etapa de SLA window (4m01s–7m01s, observable en el log a partir del minuto 4:01 con `80.00 iters/s` sostenido). La tasa global de 55.98 iter/s es el promedio sobre toda la duración del test (7m30s), incluyendo las etapas de warm-up (40 iter/s) y rampa (que parte de 0). Comparar este promedio global contra el target de la SLA window produce un resultado que subestima el rendimiento real en la ventana de medición. La métrica formalmente definida como threshold es `http_req_duration` p95, que se mantuvo en 14.30 ms durante toda la ejecución.
 - **Estado:** ✓ **Aprobado**
 
 ---
@@ -103,13 +104,14 @@ Los umbrales de aceptación formales definidos en `TEST_PLAN.md` y configurados 
 - **Qué valida:** Tiempo de procesamiento de reservas confirmadas (HTTP 201), contención correcta de inventario ante solicitudes concurrentes, y ausencia de errores técnicos.
 - **Setup:** El `setup()` invocó los endpoints de `testability/performance/reset` en `ms-ticketing` (puerto `8082`) y `ms-events` (puerto `8081`). El pool de inventario disponible al inicio de la ejecución fue de **10,120 cupos únicos**.
 - **Métricas clave observadas:**
-  - `reservation_success_duration` p95: **25.87 ms** (umbral: < 600 ms)
-  - `reservation_success_duration` p99: **30.65 ms**
-  - `http_req_failed{scenario:load_reservations}` rate: **0.00%** (umbral: < 1%)
+  - `reservation_success_duration` p95: **25.87 ms** · p99: **27.82 ms** · avg: 21.52 ms · max: 104.50 ms (umbral p95: < 600 ms)
+  - `http_req_duration` (global) p95: 25.87 ms · max: 216.43 ms
+  - `http_req_failed{scenario:load_reservations}` rate: **0.00%** — 0 de 9,449 solicitudes (umbral: < 1%)
+  - *Checks* completados: **28,348 / 28,348** (100%)
   - Iteraciones completadas: **9,449**
-  - Promedio observado de iteraciones/s (global): **~21 iter/s**
-- **Interpretación del throughput:** El promedio global de ~21 iter/s corresponde al promedio sobre toda la duración del test, incluyendo las etapas de warm-up (15 iter/s) y rampa. Durante la etapa de SLA window, el executor alcanzó el target configurado de 30 iteraciones/s, tal como se observa en el log de ejecución (`30.00 iters/s` sostenido a partir del minuto 4:01). El promedio global no debe interpretarse como que el sistema no alcanzó el target; el target de throughput no es un *threshold* formal evaluado por k6, y los *thresholds* definidos (latencia p95 y error rate) se cumplieron.
-- **Contexto de inventario:** El pool de 10,120 cupos es suficiente para cubrir varios minutos de ejecución sostenida a 30 iter/s antes de agotarse. Las respuestas `HTTP 409` generadas una vez agotado el inventario son el comportamiento esperado de la lógica de negocio (prevención de sobreventa) y fueron contabilizadas de forma separada en la métrica `reservation_inventory_conflict`, sin afectar el threshold de error rate.
+  - Tasa de iteraciones observada (global, duración total): **21.04 iter/s**
+- **Interpretación del throughput:** La tasa global de 21.04 iter/s es el promedio sobre toda la duración del test (≈7m29s), incluyendo las etapas de warm-up (15 iter/s) y rampa. El executor `ramping-arrival-rate` alcanzó el target configurado de 30 iteraciones/s durante la etapa de SLA window, tal como se observa en el log (`30.00 iters/s` sostenido a partir del minuto 4:01). Este promedio global no equivale al throughput en la ventana de medición. El target de throughput no es un *threshold* formal evaluado por k6 en esta suite; los *thresholds* definidos — `reservation_success_duration` p95 y `http_req_failed` rate — se cumplieron ambos.
+- **Estrategia de medición sobre respuestas 409:** La estrategia de medición contempló explícitamente las respuestas `HTTP 409 Conflict` como eventos de contención de inventario, registrándolas por separado mediante `reservation_inventory_conflict` para no contaminar el threshold de error técnico. El pool de inventario disponible al inicio fue de **10,120 cupos** (confirmado en el log de `setup()`). Los thresholds se evaluaron exclusivamente sobre respuestas `HTTP 201` a través de `reservation_success_duration`.
 - **Estado:** ✓ **Aprobado**
 
 ---
@@ -123,8 +125,11 @@ Los umbrales de aceptación formales definidos en `TEST_PLAN.md` y configurados 
 | `http_req_duration{scenario:load_events}` p95 | `load_events` | 14.30 ms | < 400 ms | ✓ Pass |
 | `http_req_failed{scenario:load_events}` rate | `load_events` | 0.00% | < 1% | ✓ Pass |
 | `reservation_success_duration` p95 | `load_reservations` | 25.87 ms | < 600 ms | ✓ Pass |
+| `reservation_success_duration` p99 | `load_reservations` | 27.82 ms | < 1000 ms | ✓ Pass |
 | `http_req_failed{scenario:load_reservations}` rate | `load_reservations` | 0.00% | < 1% | ✓ Pass |
-| *Checks* smoke (7/7) | Smoke Test | 100% | 100% | ✓ Pass |
+| *Checks* smoke (7/7) | Smoke Test | 7 / 7 | 100% | ✓ Pass |
+| *Checks* load events (75,601/75,601) | `load_events` | 100% | 100% | ✓ Pass |
+| *Checks* load reservations (28,348/28,348) | `load_reservations` | 100% | 100% | ✓ Pass |
 
 **Nota sobre el threshold de `reservation_success_duration`:** Esta métrica custom fue registrada únicamente sobre respuestas `HTTP 201`. Las respuestas `HTTP 409` fueron excluidas de este cómputo mediante `setResponseCallback`, reflejando exclusivamente el tiempo de procesamiento del *write-path* exitoso.
 
@@ -134,8 +139,8 @@ El throughput no es un threshold formal evaluado por k6 en esta suite. Se docume
 
 | Escenario | Target configurado (SLA window) | Promedio global observado | Nota |
 |---|:---:|:---:|---|
-| `load_events` | 80 iter/s | ~56 iter/s | Promedio sobre duración total, incluye etapas de warm-up |
-| `load_reservations` | 30 iter/s | ~21 iter/s | Promedio sobre duración total; el target se alcanzó en la SLA window |
+| `load_events` | 80 iter/s (SLA window) | 55.98 iter/s (promedio global, 7m30s) | Promedio sobre duración total, incluye warm-up a 40 iter/s. Target de 80 alcanzado y sostenido desde min 4:01 |
+| `load_reservations` | 30 iter/s (SLA window) | 21.04 iter/s (promedio global, 7m29s) | Promedio sobre duración total, incluye warm-up a 15 iter/s. Target de 30 alcanzado y sostenido desde min 4:01 |
 
 ## Métricas built-in y métricas custom relevantes
 
@@ -152,7 +157,7 @@ El throughput no es un threshold formal evaluado por k6 en esta suite. Se docume
 
 | Métrica | Descripción | Valor observado |
 |---|---|---|
-| `reservation_success_duration` | Latencia exclusiva de respuestas `HTTP 201`. Métrica Trend registrada manualmente en el script; es la base del threshold de p95 | p95: 25.87 ms · p99: 30.65 ms · avg: 21.53 ms |
+| `reservation_success_duration` | Latencia exclusiva de respuestas `HTTP 201`. Métrica Trend registrada manualmente en el script; es la base del threshold de p95 | p95: 25.87 ms · p99: 27.82 ms · avg: 21.52 ms · max: 104.50 ms |
 | `reservation_inventory_conflict` | Contador de respuestas `HTTP 409` generadas por agotamiento de inventario. Registradas como Counter separado para no contaminar `http_req_failed` | Presente; valor exacto disponible en `load-reservations-summary.json` |
 
 ---
@@ -161,11 +166,11 @@ El throughput no es un threshold formal evaluado por k6 en esta suite. Se docume
 
 1. **Latencias dentro de los umbrales en ambos flujos:** Los valores de p95 observados (14.30 ms para eventos, 25.87 ms para reservas exitosas) se encuentran ampliamente por debajo de los límites establecidos de 400 ms y 600 ms respectivamente.
 
-2. **Tasa de error técnico nula:** `http_req_failed` reportó 0.00% en ambos escenarios. Las respuestas `HTTP 409` derivadas del agotamiento de inventario no fueron contabilizadas como errores técnicos, conforme a la estrategia de medición implementada con `setResponseCallback`.
+2. **Tasa de error técnico nula:** `http_req_failed` reportó 0.00% en ambos escenarios. La estrategia de medición contempló explícitamente las respuestas `HTTP 409 Conflict` como eventos de contención de inventario, registrándolas por separado mediante `reservation_inventory_conflict` para no contaminar el threshold de error técnico.
 
-3. **`dropped_iterations` en el escenario de reservas:** El executor `ramping-arrival-rate` registró iteraciones no iniciadas (`dropped_iterations`) durante la progresión de carga. Esto ocurre cuando el scheduler intenta lanzar una nueva iteración pero no encuentra un VU libre en ese instante. Es un comportamiento esperado en entornos con recursos locales limitados durante fases de escalado; no indica errores de aplicación ni violación de thresholds.
+3. **`dropped_iterations` en el escenario de reservas:** El executor `ramping-arrival-rate` registró iteraciones no iniciadas (`dropped_iterations`) durante la progresión de carga. Esto ocurre cuando el scheduler intenta lanzar una nueva iteración pero no hay un VU disponible en ese instante — el VU pool está temporalmente ocupado completando iteraciones en curso. Es un comportamiento inherente al executor bajo condiciones de escalado y no indica errores de aplicación ni viola ningún threshold definido en la suite.
 
-4. **Comportamiento de inventario:** El pool de 10,120 cupos permitió sostener la carga durante la ventana de medición. Las respuestas `HTTP 409` posteriores al agotamiento confirman el correcto funcionamiento de la lógica de contención de inventario en el backend.
+4. **Pool de inventario:** El pool de 10,120 cupos (confirmado en el log de `setup()`) permitió cubrir la ventana de carga. La contención fue registrada de forma separada mediante `reservation_inventory_conflict`, sin afectar las métricas de SLA.
 
 ---
 
