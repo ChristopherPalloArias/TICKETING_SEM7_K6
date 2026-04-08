@@ -1,0 +1,75 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: k6/scenarios/smoke.js
+        output: -
+
+     scenarios: (100.00%) 2 scenarios, 2 max VUs, 1m0s max duration (incl. graceful stop):
+              * smoke_events: 1 iterations shared among 1 VUs (maxDuration: 30s, gracefulStop: 30s)
+              * smoke_reservations: 1 iterations shared among 1 VUs (maxDuration: 30s, gracefulStop: 30s)
+
+time="2026-04-07T23:01:18-05:00" level=info msg="=== SMOKE TEST SETUP ===" source=console
+time="2026-04-07T23:01:19-05:00" level=info msg="✓ Backend health check passed" source=console
+time="2026-04-07T23:01:19-05:00" level=info msg="✓ Ticketing reset successful" source=console
+time="2026-04-07T23:01:19-05:00" level=info msg="✓ Events reset successful" source=console
+time="2026-04-07T23:01:19-05:00" level=info msg="✓ Inventory ready: 10120 seats available" source=console
+
+running (0m01.0s), 2/2 VUs, 0 complete and 0 interrupted iterations
+smoke_events         [   0% ] 1 VUs  00.6s/30s  0/1 shared iters
+smoke_reservations   [   0% ] 1 VUs  00.6s/30s  0/1 shared iters
+time="2026-04-07T23:01:20-05:00" level=info msg="=== SMOKE TEST TEARDOWN ===" source=console
+
+
+  █ THRESHOLDS 
+
+    http_req_duration{scenario:smoke_events}
+    ✓ 'p(95) < 500' p(95)=21.33ms
+
+    http_req_duration{scenario:smoke_reservations}
+    ✓ 'p(95) < 800' p(95)=80.85ms
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 7       4.498726/s
+    checks_succeeded...: 100.00% 7 out of 7
+    checks_failed......: 0.00%   0 out of 7
+
+    ✓ Health check — Status is 200
+    ✓ GET /api/v1/events — Status is 200
+    ✓ GET /api/v1/events — Response is JSON
+    ✓ GET /api/v1/events — Response time is acceptable
+    ✓ POST /api/v1/reservations — Status is 201
+    ✓ POST /api/v1/reservations — Response contains reservation id
+    ✓ POST /api/v1/reservations — Response time is acceptable
+
+    HTTP
+    http_req_duration...................: avg=84ms    min=7.28ms  med=55.65ms max=211.28ms p(90)=182.03ms p(95)=196.65ms
+      { expected_response:true }........: avg=84ms    min=7.28ms  med=55.65ms max=211.28ms p(90)=182.03ms p(95)=196.65ms
+      { scenario:smoke_events }.........: avg=21.33ms min=21.33ms med=21.33ms max=21.33ms  p(90)=21.33ms  p(95)=21.33ms 
+      { scenario:smoke_reservations }...: avg=80.85ms min=80.85ms med=80.85ms max=80.85ms  p(90)=80.85ms  p(95)=80.85ms 
+    http_req_failed.....................: 0.00%  0 out of 6
+    http_reqs...........................: 6      3.856051/s
+
+    EXECUTION
+    iteration_duration..................: avg=1.05s   min=1.02s   med=1.05s   max=1.08s    p(90)=1.07s    p(95)=1.07s   
+    iterations..........................: 2      1.28535/s
+    vus.................................: 2      min=2      max=2
+    vus_max.............................: 2      min=2      max=2
+
+    NETWORK
+    data_received.......................: 1.5 MB 970 kB/s
+    data_sent...........................: 1.0 kB 643 B/s
+
+
+
+
+running (0m01.6s), 0/2 VUs, 2 complete and 0 interrupted iterations
+smoke_events       ✓ [ 100% ] 1 VUs  01.0s/30s  1/1 shared iters
+smoke_reservations ✓ [ 100% ] 1 VUs  01.1s/30s  1/1 shared iters

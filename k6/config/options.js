@@ -41,31 +41,31 @@ export const loadEventsOptions = {
 };
 
 export const loadReservationsOptions = {
-  // --- CONTROLLED INITIAL PROFILE ---
-  // Replaced 'ramping-arrival-rate' (30 TPS * 7.5m = 7500 requests) with 'shared-iterations'
-  // because the MVP demo environment only contains 160 seats. The previous profile caused
-  // 98% legitimate failures (409 Conflict / 400 Bad Request) due to instantaneous inventory exhaustion.
-  // This profile hits the database with realistic concurrency (20 VUs) but stops EXACTLY
-  // when all available seats are sold, yielding a clean, measurable write performance chart.
-  executor: 'shared-iterations',
-  iterations: 160, // Bound limit, technically overridden down in the script based on JSON length
-  vus: 20,         // Sufficient VUs to track concurrent row locks without connection timeouts
-  maxDuration: '2m',
-  tags: { scenario: 'load_reservations' },
-  
-  /* OVERRIDDEN PRODUCTION PROFILE (Retained for future scalability)
+  // --- SPEC-ALIGNED PROFILE (PERF-001 Section 4.4) ---
+  // Executor: ramping-arrival-rate — the only executor capable of demonstrating the
+  // 30 req/s throughput target committed in the SLA.
+  //
+  // ⚠️ KNOWN ENVIRONMENTAL CONSTRAINT:
+  // The MVP demo environment contains a bounded seat inventory (~160 unique seats).
+  // At 30 TPS this inventory is consumed in approximately 5 seconds.
+  // The setup() function calls the testability/performance/reset endpoints on both
+  // services to replenish inventory before the run. If those endpoints are unavailable
+  // or the backend is not seeded with enough quota, the error rate will exceed 1%
+  // starting from the moment inventory is exhausted — this must be documented as an
+  // environmental limitation, NOT a k6 script defect.
+  // See README.md > Limitations for full details.
   executor: 'ramping-arrival-rate',
-  preAllocatedVUs: 15,
-  maxVUs: 40,
+  preAllocatedVUs: 25,
+  maxVUs: 50,
   timeUnit: '1s',
   stages: [
-    { target: 15, duration: '1m' }, 
-    { target: 15, duration: '2m' }, 
-    { target: 30, duration: '1m' }, 
-    { target: 30, duration: '3m' }, 
-    { target: 0,  duration: '30s' },
+    { target: 15, duration: '1m' },  // Warm-up ramp to 50% target
+    { target: 15, duration: '2m' },  // Stabilization at 50%
+    { target: 30, duration: '1m' },  // Ramp to SLA target (30 req/s)
+    { target: 30, duration: '3m' },  // Primary SLA measurement window
+    { target: 0,  duration: '30s' }, // Cool-down
   ],
-  */
+  tags: { scenario: 'load_reservations' },
 };
 
 // When included by a master script, you can run all of them via scenarios:

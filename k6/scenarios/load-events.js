@@ -3,7 +3,7 @@
 
 import { check, sleep } from 'k6';
 import { loadEventsOptions } from '../config/options.js';
-import thresholds from '../config/thresholds.js';
+import { loadEventsThresholds } from '../config/thresholds.js';
 import { getEvents, healthCheck } from '../lib/http-client.js';
 import { checkEventAvailabilityResponse, checkHealthResponse } from '../lib/checks.js';
 
@@ -12,7 +12,7 @@ export const options = {
   scenarios: {
     load_events: loadEventsOptions,
   },
-  thresholds,
+  thresholds: loadEventsThresholds,
 };
 
 export function setup() {
