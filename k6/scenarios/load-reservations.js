@@ -100,7 +100,7 @@ export function setup() {
   // At 30 req/s (peak), it would be consumed twice as fast.
   // inventory_exhaustion tells us exactly when 409 responses begin.
   const warmupExhaustionSec = Math.ceil(testData.length / 15);
-  const peakExhaustionSec   = Math.ceil(testData.length / 30);
+  const peakExhaustionSec = Math.ceil(testData.length / 30);
   console.log(`✓ Inventory pool: ${testData.length} unique seats`);
   console.log(`  → Exhausted in ~${warmupExhaustionSec}s at warm-up rate (15 req/s)`);
   console.log(`  → Exhausted in ~${peakExhaustionSec}s at peak rate (30 req/s)`);
@@ -120,7 +120,7 @@ export default function (data) {
   // Map the flat inventory record to the seatIds array expected by the backend contract.
   const correctedDataItem = {
     eventId: dataItem.eventId,
-    tierId:  dataItem.tierId,
+    tierId: dataItem.tierId,
     seatIds: [dataItem.seatId],
   };
 

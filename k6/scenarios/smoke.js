@@ -97,7 +97,7 @@ export default function (data) {
     const dataItem = data.testData[0];
     const correctedDataItem = {
       eventId: dataItem.eventId,
-      tierId:  dataItem.tierId,
+      tierId: dataItem.tierId,
       seatIds: [dataItem.seatId],
     };
 
