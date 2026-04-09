@@ -29,9 +29,10 @@ jobs:
       - name: Preparar carpeta para Pages
         run: |
           mkdir -p public
-          # Copiamos el informe a la carpeta de publicación y lo renombramos a index.html
-          # para que cargue automáticamente al ingresar a la URL base.
+          # Copiamos el informe principal como index.html
           cp K6_RESULTS_REPORT.html public/index.html
+          # Copiamos el archivo de gráficas para que el iframe pueda cargarlo
+          cp k6_graficas.html public/k6_graficas.html
 
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
